@@ -1,0 +1,9 @@
+# Lens Studio caches and local state
+Cache/
+*.lspkg.cache
+.DS_Store
+Thumbs.db
+# Local-only
+_local/
+*.log
+.env
