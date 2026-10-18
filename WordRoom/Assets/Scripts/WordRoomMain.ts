@@ -39,7 +39,7 @@ const WORDS: WordEntry[] = [
     { article: "de", noun: "pan", prefab: panPrefab, aabbCm: new vec3(28, 8.4, 18.4) },
     { article: "de", noun: "ketel", prefab: ketelPrefab, aabbCm: new vec3(20, 20, 19.2) },
     { article: "de", noun: "snijplank", prefab: snijplankPrefab, aabbCm: new vec3(30, 2, 20) },
-    { article: "het", noun: "mes", prefab: mesPrefab, aabbCm: new vec3(3, 29, 30) },
+    { article: "het", noun: "mes", prefab: mesPrefab, aabbCm: new vec3(30, 2.7, 4.8) },
     { article: "het", noun: "glas", prefab: glasPrefab, aabbCm: new vec3(8.8, 12, 8.8) },
     { article: "het", noun: "bord", prefab: bordPrefab, aabbCm: new vec3(25, 2.6, 25) },
 ]
@@ -47,15 +47,23 @@ const WORDS: WordEntry[] = [
 const DE_COLOR = new vec4(0.29, 0.565, 0.851, 1)    // #4A90D9 blue
 const HET_COLOR = new vec4(0.91, 0.569, 0.227, 1)   // #E8913A orange
 const CORRECT_COLOR = new vec4(0.3, 0.9, 0.3, 1)    // Green ring
+const ARROW_COLOR = new vec4(1.0, 0.86, 0.35, 1)    // Warm yellow hint arrow
+const RING_SIZE_PER_CM = 33                         // Text size units per cm of ring diameter (measured in preview)
+const DOT_COLOR = new vec4(0.92, 0.94, 1.0, 1)      // Neutral quiz-mode dot
 const WHITE = new vec4(1, 1, 1, 1)
 
 // Tag backing: soft frosted light tint (visible on additive display)
-const TAG_BACKING_COLOR = new vec4(0.85, 0.85, 0.88, 0.35)
+const TAG_BACKING_COLOR = new vec4(0.17, 0.19, 0.25, 0.82)
 
 // Muted wood tone for snijplank runtime tint
 const SNIJPLANK_TINT = new vec4(0.65, 0.5, 0.35, 1)
 
 type GameMode = "learn" | "quiz" | "score"
+
+// Quiz panel follow: distance ahead (cm), drop below eye level (cm), smoothing per frame
+const PANEL_DISTANCE = 85
+const PANEL_DROP = -12
+const PANEL_FOLLOW = 0.06
 
 @component
 export class WordRoomMain extends BaseScriptComponent {
@@ -75,12 +83,12 @@ export class WordRoomMain extends BaseScriptComponent {
     @ui.group_start("Settings")
     @input
     @hint("Height of floating word tags above objects (cm)")
-    @widget(new SliderWidget(6, 20, 1))
-    tagHeight: number = 12
+    @widget(new SliderWidget(4, 20, 1))
+    tagHeight: number = 7
 
     @input
     @hint("Total X spread for placing objects on counter (cm)")
-    @widget(new SliderWidget(30, 90, 5))
+    @widget(new SliderWidget(30, 150, 5))
     totalWidth: number = 55
 
     @input("vec4", "{0.29, 0.565, 0.851, 1}")
@@ -105,6 +113,11 @@ export class WordRoomMain extends BaseScriptComponent {
     private correctCount: number = 0
     private totalQuestions: number = 6
     private missedWords: number[] = []
+    private missedThisQuestion: boolean = false
+    private busy: boolean = false
+    private tagFull: SceneObject[][] = []
+    private tagDots: SceneObject[] = []
+    private tagTimers: number[] = []
 
     // Audio components
     private correctAudio!: AudioComponent
@@ -125,9 +138,11 @@ export class WordRoomMain extends BaseScriptComponent {
         this.setupAudio()
         this.buildScene()
 
-        // Billboard update loop: rotate all tagRoots to face camera each frame
+        // Billboard update loop: rotate all tagRoots to face camera each frame,
+        // and let the quiz panel lazily follow the user's gaze along the counter
         this.createEvent("UpdateEvent").bind(() => {
             this.updateBillboards()
+            this.updatePanelFollow()
         })
 
         // Defer event wiring to OnStartEvent so QuizPanel's onAwake has run
@@ -168,6 +183,27 @@ export class WordRoomMain extends BaseScriptComponent {
         }
     }
 
+    /** Keep the quiz panel in view: ~85 cm ahead along the gaze, a little below eye level, facing the user. */
+    private updatePanelFollow(): void {
+        if (!this.cameraTransform || !this.quizPanel) return
+        const camPos = this.cameraTransform.getWorldPosition()
+        const look = this.cameraTransform.getWorldRotation().multiplyVec3(new vec3(0, 0, -1))
+        const flat = new vec3(look.x, 0, look.z)
+        if (flat.length < 0.01) return
+        const target = camPos.add(flat.normalize().uniformScale(PANEL_DISTANCE)).add(new vec3(0, PANEL_DROP, 0))
+        const pt = this.quizPanel.getSceneObject().getTransform()
+        const cur = pt.getWorldPosition()
+        pt.setWorldPosition(vec3.lerp(cur, target, PANEL_FOLLOW))
+        const toCam = camPos.sub(pt.getWorldPosition())
+        const flatToCam = new vec3(toCam.x, 0, toCam.z)
+        if (flatToCam.length > 0.01) pt.setWorldRotation(quat.lookAt(flatToCam, vec3.up()))
+    }
+
+    private logPanel(): void {
+        const p = this.quizPanel.getSceneObject().getTransform().getWorldPosition()
+        print(`[WordRoom] panel at (${p.x.toFixed(1)}, ${p.y.toFixed(1)}, ${p.z.toFixed(1)})`)
+    }
+
     private setupAudio(): void {
         // Correct sound
         const cObj = global.scene.createSceneObject("CorrectAudio")
@@ -199,7 +235,8 @@ export class WordRoomMain extends BaseScriptComponent {
             // Object wrapper (no physics collider -- SIK Interactable handles its own)
             const wrapper = global.scene.createSceneObject(`Obj_${word.noun}`)
             wrapper.setParent(this.counterRoot)
-            wrapper.getTransform().setLocalPosition(new vec3(xPos, word.aabbCm.y / 2 + 2.5, 0))
+            // GLBs are grounded (pivot at the base), so the object sits on the counter top (slab top = +0.5 cm)
+            wrapper.getTransform().setLocalPosition(new vec3(xPos, 0.6, 0))
 
             // Visual child (the GLB)
             const visual = word.prefab.instantiate(wrapper)
@@ -219,7 +256,7 @@ export class WordRoomMain extends BaseScriptComponent {
             // ── Floating word tag with backing ──────────────────
             const tagRoot = global.scene.createSceneObject(`Tag_${word.noun}`)
             tagRoot.setParent(wrapper)
-            tagRoot.getTransform().setLocalPosition(new vec3(0, word.aabbCm.y / 2 + this.tagHeight, 0.5))
+            tagRoot.getTransform().setLocalPosition(new vec3(0, word.aabbCm.y + this.tagHeight, 0.5))
 
             const articleColor = word.article === "de" ? this.deArticleColor : this.hetArticleColor
 
@@ -261,9 +298,25 @@ export class WordRoomMain extends BaseScriptComponent {
             tagText.textFill.color = WHITE
             tagText.enableRichText = true
 
+            // Quiz-mode dot: a small neutral marker showing where the tag is, without the word
+            const dotObj = global.scene.createSceneObject(`TagDot_${word.noun}`)
+            dotObj.setParent(tagRoot)
+            dotObj.getTransform().setLocalPosition(new vec3(0, -1.0, 0))
+            const dotText = dotObj.createComponent("Component.Text") as Text
+            dotText.text = "\u25CF"
+            dotText.size = 60
+            dotText.depthTest = true
+            dotText.textFill.color = DOT_COLOR
+            dotText.horizontalAlignment = HorizontalAlignment.Center
+            dotText.verticalAlignment = VerticalAlignment.Center
+            dotObj.enabled = false
+
             this.objectRoots.push(wrapper)
             this.tagTexts.push(tagText)
             this.tagRoots.push(tagRoot)
+            this.tagFull.push([backingObj, bottomLineObj, labelObj])
+            this.tagDots.push(dotObj)
+            this.tagTimers.push(0)
 
             // Wire interaction
             const idx = i
@@ -305,12 +358,15 @@ export class WordRoomMain extends BaseScriptComponent {
 
     private setMode(mode: GameMode): void {
         this.mode = mode
+        this.logPanel()
         if (mode === "learn") {
+            print("[WordRoom] learn mode")
             this.quizPanel.showLearnMode()
             this.showAllTags(true)
         } else if (mode === "quiz") {
             // Tags handled by shrinkTags
         } else if (mode === "score") {
+            print(`[WordRoom] round over: ${this.correctCount}/${this.totalQuestions}; missed: [${this.missedWords.map(i => WORDS[i].noun).join(", ")}]`)
             this.quizPanel.showScoreMode(this.correctCount, this.totalQuestions)
             this.showAllTags(true)
         }
@@ -330,6 +386,7 @@ export class WordRoomMain extends BaseScriptComponent {
         this.shuffle(rest)
         this.shuffle(missed)
         this.questionQueue = [...missed, ...rest]
+        print(`[WordRoom] quiz start; missed first: [${missed.map(i => WORDS[i].noun).join(", ")}]; order: [${this.questionQueue.map(i => WORDS[i].noun).join(", ")}]`)
         this.missedWords = []
 
         this.shrinkAllTags()
@@ -343,7 +400,9 @@ export class WordRoomMain extends BaseScriptComponent {
             return
         }
         this.currentQuestion = this.questionQueue.shift()!
+        this.missedThisQuestion = false
         const word = WORDS[this.currentQuestion]
+        print(`[WordRoom] question: Waar is ${word.article} ${word.noun}?`)
         const question = `Waar is ${word.article} ${word.noun}?`
         this.quizPanel.showQuizMode(question)
     }
@@ -351,29 +410,33 @@ export class WordRoomMain extends BaseScriptComponent {
     private onObjectPinched(idx: number): void {
         if (this.mode !== "quiz") return
 
+        if (this.busy) return
+        const word = WORDS[idx]
         if (idx === this.currentQuestion) {
-            // Correct!
-            this.correctCount++
+            // Correct: only a first-try answer counts toward the score
+            if (!this.missedThisQuestion) this.correctCount++
+            print(`[WordRoom] pinch ${word.article} ${word.noun}: CORRECT (score ${this.correctCount})`)
+            this.busy = true
             this.correctAudio.play(1)
             this.flashCorrect(idx)
-            this.showTagBriefly(idx)
+            this.showTagFor(idx, 1.4)
 
-            // Next question after a short delay
             const delayEvent = this.createEvent("DelayedCallbackEvent") as DelayedCallbackEvent
             delayEvent.bind(() => {
-                this.resetObjectVisual(idx)
+                this.busy = false
                 this.nextQuestion()
             })
-            delayEvent.reset(1.5)
+            delayEvent.reset(1.6)
         } else {
-            // Wrong! FIX 3: flash the WRONG object's tag (the one user pinched), not the correct one
+            // Wrong: the pinched object shakes and shows its own word; an arrow marks the right one
+            print(`[WordRoom] pinch ${word.article} ${word.noun}: WRONG (asked ${WORDS[this.currentQuestion].noun})`)
             this.wrongAudio.play(1)
+            this.missedThisQuestion = true
             if (!this.missedWords.includes(this.currentQuestion)) {
                 this.missedWords.push(this.currentQuestion)
             }
             this.shakeObject(idx)
-            this.flashTag(idx)
-            // Show arrow pointing to correct object
+            this.showTagFor(idx, 2.0)
             this.showArrow(this.currentQuestion)
         }
     }
@@ -384,25 +447,37 @@ export class WordRoomMain extends BaseScriptComponent {
     }
 
     // ── Visual feedback ──────────────────────────────────────
+    /** Show a tag as the full label (article + noun) or as the small quiz-mode dot. */
+    private setTagFull(idx: number, full: boolean): void {
+        this.tagRoots[idx].enabled = true
+        for (const part of this.tagFull[idx]) part.enabled = full
+        this.tagDots[idx].enabled = !full
+    }
+
     private showAllTags(visible: boolean): void {
-        for (const root of this.tagRoots) {
-            root.enabled = visible
-            if (visible) {
-                root.getTransform().setLocalScale(new vec3(1, 1, 1))
-            }
+        for (let i = 0; i < this.tagRoots.length; i++) {
+            this.tagTimers[i]++
+            if (visible) this.setTagFull(i, true)
+            else this.tagRoots[i].enabled = false
         }
     }
 
     private shrinkAllTags(): void {
-        for (const root of this.tagRoots) {
-            // Shrink to a small dot (scale to near zero)
-            root.getTransform().setLocalScale(new vec3(0.05, 0.05, 0.05))
+        for (let i = 0; i < this.tagRoots.length; i++) {
+            this.tagTimers[i]++
+            this.setTagFull(i, false)
         }
     }
 
-    private showTagBriefly(idx: number): void {
-        const root = this.tagRoots[idx]
-        root.getTransform().setLocalScale(new vec3(1, 1, 1))
+    /** Bring a tag back as the full label for a while, then return it to a dot (if still in quiz mode). */
+    private showTagFor(idx: number, seconds: number): void {
+        const token = ++this.tagTimers[idx]
+        this.setTagFull(idx, true)
+        const delayEvent = this.createEvent("DelayedCallbackEvent") as DelayedCallbackEvent
+        delayEvent.bind(() => {
+            if (this.tagTimers[idx] === token && this.mode === "quiz") this.setTagFull(idx, false)
+        })
+        delayEvent.reset(seconds)
     }
 
     private flashCorrect(idx: number): void {
@@ -410,11 +485,14 @@ export class WordRoomMain extends BaseScriptComponent {
         const wrapper = this.objectRoots[idx]
         const ringObj = global.scene.createSceneObject("GreenRing")
         ringObj.setParent(wrapper)
-        ringObj.getTransform().setLocalPosition(new vec3(0, 0, 0))
+        ringObj.getTransform().setLocalPosition(new vec3(0, 0.4, 0))
+        ringObj.getTransform().setLocalRotation(quat.fromEulerAngles(-Math.PI / 2, 0, 0))
+        const size = WORDS[idx].aabbCm
+        const diameterCm = Math.min(36, Math.max(12, 1.25 * Math.max(size.x, size.z)))
 
         const ringText = ringObj.createComponent("Component.Text") as Text
-        ringText.text = "\u25CF"
-        ringText.size = 200
+        ringText.text = "\u25EF"
+        ringText.size = Math.round(diameterCm * RING_SIZE_PER_CM)
         ringText.depthTest = true
         ringText.textFill.color = CORRECT_COLOR
         ringText.horizontalAlignment = HorizontalAlignment.Center
@@ -428,18 +506,14 @@ export class WordRoomMain extends BaseScriptComponent {
         delayEvent.reset(1.4)
     }
 
-    private resetObjectVisual(idx: number): void {
-        // Re-shrink tag after brief show
-        this.tagRoots[idx].getTransform().setLocalScale(new vec3(0.05, 0.05, 0.05))
-    }
 
     private shakeObject(idx: number): void {
         const wrapper = this.objectRoots[idx]
         const transform = wrapper.getTransform()
         const origPos = transform.getLocalPosition()
         let shakeCount = 0
-        const maxShakes = 6
-        const shakeDist = 1.0
+        const maxShakes = 16
+        const shakeDist = 1.8
 
         const updateEvent = this.createEvent("UpdateEvent")
         updateEvent.bind(() => {
@@ -449,41 +523,40 @@ export class WordRoomMain extends BaseScriptComponent {
                 updateEvent.enabled = false
                 return
             }
-            const offset = (shakeCount % 2 === 0) ? shakeDist : -shakeDist
+            const damp = 1 - shakeCount / maxShakes
+            const offset = ((shakeCount % 2 === 0) ? shakeDist : -shakeDist) * damp
             transform.setLocalPosition(new vec3(origPos.x + offset, origPos.y, origPos.z))
         })
     }
 
-    private flashTag(idx: number): void {
-        // Briefly show the tag at full size, then re-shrink
-        const root = this.tagRoots[idx]
-        root.getTransform().setLocalScale(new vec3(1, 1, 1))
-
-        const delayEvent = this.createEvent("DelayedCallbackEvent") as DelayedCallbackEvent
-        delayEvent.bind(() => {
-            root.getTransform().setLocalScale(new vec3(0.05, 0.05, 0.05))
-        })
-        delayEvent.reset(2.0)
-    }
 
     private showArrow(correctIdx: number): void {
         // Create an arrow text pointing toward the correct object
         const correctWrapper = this.objectRoots[correctIdx]
         const arrowObj = global.scene.createSceneObject("Arrow")
         arrowObj.setParent(correctWrapper)
-        arrowObj.getTransform().setLocalPosition(new vec3(0, WORDS[correctIdx].aabbCm.y + 5, 0.5))
+        const arrowBaseY = WORDS[correctIdx].aabbCm.y + 5
+        arrowObj.getTransform().setLocalPosition(new vec3(0, arrowBaseY, 0.5))
+        let t = 0
+        const bob = this.createEvent("UpdateEvent")
+        bob.bind(() => {
+            if (isNull(arrowObj)) { bob.enabled = false; return }
+            t += getDeltaTime()
+            arrowObj.getTransform().setLocalPosition(new vec3(0, arrowBaseY + 1.5 * Math.abs(Math.sin(t * 6)), 0.5))
+        })
 
         const arrowText = arrowObj.createComponent("Component.Text") as Text
         arrowText.text = "\u25BC"
-        arrowText.size = 80
+        arrowText.size = 220
         arrowText.depthTest = true
-        arrowText.textFill.color = CORRECT_COLOR
+        arrowText.textFill.color = ARROW_COLOR
         arrowText.horizontalAlignment = HorizontalAlignment.Center
         arrowText.verticalAlignment = VerticalAlignment.Center
 
         // Remove after delay
         const delayEvent = this.createEvent("DelayedCallbackEvent") as DelayedCallbackEvent
         delayEvent.bind(() => {
+            bob.enabled = false
             arrowObj.destroy()
         })
         delayEvent.reset(2.0)

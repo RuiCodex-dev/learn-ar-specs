@@ -214,8 +214,6 @@
   Enabled: true
   ScriptAsset: !<reference> 79c22af6-28a2-4745-8243-2fe7be1dc69e
   ScriptInputsDefault:
-    tagHeight: true
-    totalWidth: true
     deArticleColor: true
     hetArticleColor: true
   ScriptTypesDefault:
@@ -224,8 +222,8 @@
     "":
       quizPanel: !<MappingBased.AssignableType_1> 16a96bab-309f-4620-bd0c-19d5c8d2363c
       counterRoot: !<reference.SceneObject> 4433423a-025b-4003-9ea4-76aaa696047c
-      tagHeight: !<float> 12.000000
-      totalWidth: !<float> 55.000000
+      tagHeight: !<float> 7.000000
+      totalWidth: !<float> 115.000000
       deArticleColor: !<Vec4> {x: 0.290000, y: 0.565000, z: 0.851000, w: 1.000000}
       hetArticleColor: !<Vec4> {x: 0.910000, y: 0.569000, z: 0.227000, w: 1.000000}
   ScriptTypes:
@@ -270,7 +268,7 @@
   LocalTransform: !<TransformEntity>
     Position: {x: 0.000000, y: -0.500000, z: 0.000000}
     Rotation: {x: 0.000000, y: 0.000000, z: 0.000000}
-    Scale: {x: 80.000000, y: 2.000000, z: 35.000000}
+    Scale: {x: 150.000000, y: 2.000000, z: 40.000000}
     HasSegmentScaleCompensation: false
   Children:
     []
@@ -992,7 +990,7 @@
   Enabled: true
   Layers: 1
   LocalTransform: !<TransformEntity>
-    Position: {x: 0.000000, y: -40.000000, z: -80.000000}
+    Position: {x: 0.000000, y: -40.000000, z: -70.000000}
     Rotation: {x: 0.000000, y: 0.000000, z: 0.000000}
     Scale: {x: 1.000000, y: 1.000000, z: 1.000000}
     HasSegmentScaleCompensation: false
@@ -1719,7 +1717,7 @@
   Enabled: true
   Layers: 1
   LocalTransform: !<TransformEntity>
-    Position: {x: 0.000000, y: -15.000000, z: -75.000000}
+    Position: {x: 0.000000, y: -9.000000, z: -92.000000}
     Rotation: {x: 0.000000, y: 0.000000, z: 0.000000}
     Scale: {x: 1.000000, y: 1.000000, z: 1.000000}
     HasSegmentScaleCompensation: false

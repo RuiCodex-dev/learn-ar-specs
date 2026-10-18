@@ -47,7 +47,7 @@ function applyTextRole(t: Text, role: TextRole): void {
 }
 
 // ── Layout constants ──────────────────────────────────────────
-const PANEL_W = 22
+const PANEL_W = 26
 const BUTTON_LABEL_Z = 0.08
 
 @component
@@ -91,7 +91,7 @@ export class WordRoomQuizPanelUI extends BaseScriptComponent {
 
         // ── Quiz mode: question text ─────────────────────────
         this.quizRoot = this.createChild(content, "QuizMode", vec3.zero())
-        this.questionText = this.addText(this.quizRoot, "Waar is de pan?", "Subheadline",
+        this.questionText = this.addText(this.quizRoot, "Waar is de pan?", "HeadlineXL",
             new vec4(1, 1, 1, 1), PANEL_W - 3)
         this.quizRoot.enabled = false
 
