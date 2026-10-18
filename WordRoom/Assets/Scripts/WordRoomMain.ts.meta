@@ -1,0 +1,67 @@
+- !<AssetImportMetadata/9d93eede-5856-4c17-a30b-606edb83e107>
+  ImportedAssetIds:
+    TypeScriptAsset: !<reference> 79c22af6-28a2-4745-8243-2fe7be1dc69e
+  ImporterName: TypeScriptAssetImporter
+  PrimaryAsset: !<reference> 79c22af6-28a2-4745-8243-2fe7be1dc69e
+  PackageType: NotAPackage
+  LegacyPackagePolicy: ~
+  ExtraData:
+    {}
+  AssetDataMap:
+    TypeScriptAsset: !<own> 210fe73d-f828-4cab-b220-2ffeb97e731a
+  DependentFiles:
+    []
+  ImporterSettings: !<AssetImporterSettings>
+    {}
+  CompressionSettings: !<own> 00000000-0000-0000-0000-000000000000
+- !<TypeScriptAssetData/210fe73d-f828-4cab-b220-2ffeb97e731a>
+  SvgIcon: ""
+  SetupScript:
+    code: ""
+  Description: ""
+  VersionMajor: 0
+  VersionMinor: 0
+  VersionPatch: 0
+  VersionPrerelease: ""
+  UpdateOrder: 0
+  ComponentUid: 735f9f80-855e-4df0-afd4-6cca5f2bbe59
+  ExportUid: 00000000-0000-0000-0000-000000000000
+  PackagePolicy: CanBeUnpacked
+  ScriptInputsHidden:
+    counterRoot: false
+    deArticleColor: false
+    hetArticleColor: false
+    quizPanel: false
+    tagHeight: false
+    totalWidth: false
+  ScriptTypesHidden:
+    {}
+  ReadMe: !<reference> 00000000-0000-0000-0000-000000000000
+  DeclarationFile: !<reference> 00000000-0000-0000-0000-000000000000
+  Tags:
+    []
+  Attachments:
+    []
+  DefaultScriptInputs:
+    - quizPanel: !<MappingBased.AssignableType_1> 00000000-0000-0000-0000-000000000000
+      counterRoot: !<reference.SceneObject> 00000000-0000-0000-0000-000000000000
+      tagHeight: !<float> 12.000000
+      totalWidth: !<float> 55.000000
+      deArticleColor: !<Vec4> {x: 0.290000, y: 0.565000, z: 0.851000, w: 1.000000}
+      hetArticleColor: !<Vec4> {x: 0.910000, y: 0.569000, z: 0.227000, w: 1.000000}
+  ScriptTypes:
+    -
+      {}
+  InputLines:
+    - '// @ui {"widget":"label", "label":"<span style=\"color: #60A5FA;\">WordRoomMain - Dutch vocabulary game</span>"}'
+    - '// @ui {"widget":"separator"}'
+    - '// @ui {"widget":"group_start", "label":"References"}'
+    - '// @input AssignableType_1 quizPanel {"hint":"Quiz panel UI module"}'
+    - '// @input SceneObject counterRoot {"hint":"Root SceneObject for the counter surface"}'
+    - '// @ui {"widget":"group_end"}'
+    - '// @ui {"widget":"group_start", "label":"Settings"}'
+    - '// @input float tagHeight = 12 {"hint":"Height of floating word tags above objects (cm)", "widget":"slider", "min":6, "max":20, "step":1}'
+    - '// @input float totalWidth = 55 {"hint":"Total X spread for placing objects on counter (cm)", "widget":"slider", "min":30, "max":90, "step":5}'
+    - "// @input vec4 deArticleColor = \"{0.29, 0.565, 0.851, 1}\" {\"hint\":\"Color for 'de' article tags\", \"widget\":\"color\"}"
+    - "// @input vec4 hetArticleColor = \"{0.91, 0.569, 0.227, 1}\" {\"hint\":\"Color for 'het' article tags\", \"widget\":\"color\"}"
+    - '// @ui {"widget":"group_end"}'

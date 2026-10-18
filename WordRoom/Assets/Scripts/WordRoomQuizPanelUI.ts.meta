@@ -1,0 +1,50 @@
+- !<AssetImportMetadata/384405e9-c7f0-4845-b1b7-e05e03ef3b70>
+  ImportedAssetIds:
+    TypeScriptAsset: !<reference> 8a239bf6-2b2f-48e7-a1f3-ffe635b40c83
+  ImporterName: TypeScriptAssetImporter
+  PrimaryAsset: !<reference> 8a239bf6-2b2f-48e7-a1f3-ffe635b40c83
+  PackageType: NotAPackage
+  LegacyPackagePolicy: ~
+  ExtraData:
+    {}
+  AssetDataMap:
+    TypeScriptAsset: !<own> 3ddb5d87-624f-4892-98fc-1f1ad4d2dc97
+  DependentFiles:
+    []
+  ImporterSettings: !<AssetImporterSettings>
+    {}
+  CompressionSettings: !<own> 00000000-0000-0000-0000-000000000000
+- !<TypeScriptAssetData/3ddb5d87-624f-4892-98fc-1f1ad4d2dc97>
+  SvgIcon: ""
+  SetupScript:
+    code: ""
+  Description: ""
+  VersionMajor: 0
+  VersionMinor: 0
+  VersionPatch: 0
+  VersionPrerelease: ""
+  UpdateOrder: 0
+  ComponentUid: bc374d9d-c556-4b3c-b02d-caaefe877099
+  ExportUid: 00000000-0000-0000-0000-000000000000
+  PackagePolicy: CanBeUnpacked
+  ScriptInputsHidden:
+    scoreColor: false
+  ScriptTypesHidden:
+    {}
+  ReadMe: !<reference> 00000000-0000-0000-0000-000000000000
+  DeclarationFile: !<reference> 00000000-0000-0000-0000-000000000000
+  Tags:
+    []
+  Attachments:
+    []
+  DefaultScriptInputs:
+    - scoreColor: !<Vec4> {x: 0.450000, y: 0.900000, z: 0.550000, w: 1.000000}
+  ScriptTypes:
+    -
+      {}
+  InputLines:
+    - '// @ui {"widget":"label", "label":"<span style=\"color: #60A5FA;\">WordRoomQuizPanelUI - Quiz/Score panel</span>"}'
+    - '// @ui {"widget":"separator"}'
+    - '// @ui {"widget":"group_start", "label":"Settings"}'
+    - '// @input vec4 scoreColor = "{0.45, 0.9, 0.55, 1}" {"hint":"Color for the score number", "widget":"color"}'
+    - '// @ui {"widget":"group_end"}'

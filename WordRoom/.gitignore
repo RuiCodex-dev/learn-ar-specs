@@ -31,3 +31,7 @@ ls-live-instance.json.tmp
 .codex/config.toml
 .claude/settings.local.json
 # END Lens Studio managed Agents-Docs block
+
+# CLAD temporary asset-generation working files
+tempAssetGen/
+.virtual-scene.json
